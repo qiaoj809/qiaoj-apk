@@ -1,46 +1,69 @@
-# 工作流名称，可自定义
-name: Build Kivy Android APK Automatically
+# 工作流名称，在 GitHub Actions 页面显示
+name: Build Kivy Android APK
 
-# 触发条件：推送代码或手动触发
+# 触发条件：推送到 main 分支时自动运行
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # 支持手动触发
+  # 可选：允许在 GitHub 页面手动触发该工作流
+  workflow_dispatch:
 
-# 定义打包任务
+# 工作流任务定义
 jobs:
-  build-android-apk:
+  build-apk:
+    # 运行环境：选择 Ubuntu 最新版（Buildozer 在 Linux 环境下最稳定）
     runs-on: ubuntu-latest
 
+    # 任务步骤
     steps:
-      # 步骤1：拉取项目代码
-      - name: Checkout project code
+      # 步骤 1：拉取当前仓库的代码到运行环境
+      - name: Checkout repository code
         uses: actions/checkout@v4
 
-      # 步骤2：配置 Python 环境
-      - name: Set up Python 3.10
+      # 步骤 2：安装 Buildozer 依赖的系统环境
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            python3-pip \
+            python3-dev \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            libncurses5 \
+            libncursesw5 \
+            zlib1g-dev \
+            libffi-dev \
+            libssl-dev \
+            build-essential
+
+      # 步骤 3：设置 Python 环境（指定 3.9，兼容 Kivy 和 Buildozer）
+      - name: Set up Python 3.9
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-          cache: 'pip'
+          python-version: '3.9'
 
-      # 步骤3：安装 Buildozer 和系统依赖
-      - name: Install Buildozer and dependencies
+      # 步骤 4：安装 Buildozer 和 Kivy 相关 Python 依赖
+      - name: Install Python dependencies
         run: |
-          pip install --upgrade pip
-          pip install buildozer
-          sudo apt-get update -y
-          sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+          python -m pip install --upgrade pip
+          pip install buildozer kivy
 
-      # 步骤4：执行打包
-      - name: Build APK
-        run: |
-          buildozer android clean
-          buildozer android debug --log-level=2
+      # 步骤 5：生成 Buildozer 配置文件（若仓库中无 buildozer.spec 可启用）
+      # 若你已有自定义的 buildozer.spec，注释掉该步骤即可
+      - name: Generate Buildozer spec (optional)
+        run: buildozer init
 
-      # 步骤5：上传 APK 文件
-      - name: Upload APK
+      # 步骤 6：使用 Buildozer 构建 Android APK
+      - name: Build Android APK with Buildozer
+        run: buildozer android debug
+
+      # 步骤 7：上传构建完成的 APK 作为工作流产物（方便下载）
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Kivy-APK-Output
-          path: bin/*.apk
+          # 产物名称，在 GitHub Actions 结果页面显示
+          name: Kivy-App-APK
+          # APK 文件的默认生成路径（Buildozer 编译完成后存放的位置）
+          path: ./bin/*.apk
