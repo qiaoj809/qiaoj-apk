@@ -15,7 +15,7 @@ jobs:
     # 运行环境：选择 Ubuntu 最新版（兼容 Buildozer 构建 APK）
     runs-on: ubuntu-latest
 
-    # 步骤执行顺序（已修复核心顺序问题，不可随意调换关键步骤）
+    # 步骤执行顺序（已修复所有已知报错，关键步骤不可随意调换）
     steps:
       # 步骤 1：拉取完整项目代码（必须第一步，获取项目所有文件）
       - name: Checkout full repository code
@@ -23,21 +23,22 @@ jobs:
         with:
           fetch-depth: 0  # 拉取完整提交历史，避免文件缺失
 
-      # 步骤 2：先创建 requirements.txt（核心修复：先有依赖文件，再初始化 Python）
+      # 步骤 2：创建正确的 requirements.txt（核心修复：使用存在的稳定版本）
       - name: Create required requirements.txt
         run: |
           echo "buildozer==1.5.0" > requirements.txt
-          echo "python-for-android==2023.10.0" >> requirements.txt
+          # 替换为 PyPI 上存在的稳定版，解决安装失败问题
+          echo "python-for-android==2024.1.21" >> requirements.txt
           cat requirements.txt  # 打印文件内容，验证创建成功
 
-      # 步骤 3：设置 Python 3.9 环境（此时已有 requirements.txt，不会报错）
+      # 步骤 3：设置 Python 3.9 环境（此时已有合法 requirements.txt，无报错）
       - name: Set up Python 3.9
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
           cache: 'pip'  # 缓存 pip 依赖，加速后续构建
 
-      # 步骤 4：安装 Python 依赖（Buildozer 等，用于 APK 构建）
+      # 步骤 4：安装 Python 依赖（可正常拉取包，无版本不存在报错）
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
